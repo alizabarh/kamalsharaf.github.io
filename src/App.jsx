@@ -6,8 +6,30 @@ import {
 } from 'lucide-react';
 
 // ==========================================
-// 🎨 البيانات الابتدائية للموقع
+// 🔥 إعدادات قاعدة بيانات Firebase (السحابة)
 // ==========================================
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+
+// 🛑 الصق إعدادات مشروعك هنا من موقع Firebase الذي أنشأته 🛑
+const firebaseConfig = {
+  apiKey: "AIzaSyA2Mmbclcu03xafH532Gki8QY-SiA0JAP8",
+  authDomain: "kamal-gallery.firebaseapp.com",
+  projectId: "kamal-gallery",
+  storageBucket: "kamal-gallery.firebasestorage.app",
+  messagingSenderId: "242508713403",
+  appId: "1:242508713403:web:788c8433c4c898127b889e"
+};
+
+// تهيئة قاعدة البيانات (تعمل فقط إذا تم إدخال الإعدادات الحقيقية)
+let app;
+let db;
+if (firebaseConfig.apiKey !== "ضع_الكود_هنا") {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+}
+
+// 🎨 البيانات الابتدائية كاحتياطي
 const INITIAL_IMAGES_DATA = [
   { id: 1, title: 'كاريكاتير الرئيس', url: '', category: 'latest' },
   { id: 2, title: 'رسم شخصي للفنان', url: '', category: 'latest' },
@@ -18,26 +40,28 @@ const INITIAL_IMAGES_DATA = [
 ];
 
 const App = () => {
-  // 📱 حالات الواجهة والتنقل
   const [activeTab, setActiveTab] = useState('home');
-  
-  // 💾 حالات البيانات
   const [imagesData, setImagesData] = useState(INITIAL_IMAGES_DATA);
-  const [artistImage, setArtistImage] = useState('ffe4d5f5-5679-44cb-adbb-3fc08e2f19d2.jpg'); // صورة افتراضية
   
-  // 🔐 حالات لوحة الإدارة (Admin)
+  // حفظ صورة الفنان في المتصفح بشكل دائم
+  const [artistImage, setArtistImage] = useState(() => {
+    return localStorage.getItem('artistImage') || 'ffe4d5f5-5679-44cb-adbb-3fc08e2f19d2.jpg';
+  });
+  
+  // حفظ كلمة السر في المتصفح بشكل دائم
+  const [adminPassword, setAdminPassword] = useState(() => {
+    return localStorage.getItem('adminPassword') || '123456';
+  });
+
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('123456');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   
-  // 📝 حالات النماذج (Forms)
   const [newImage, setNewImage] = useState({ title: '', url: '', category: 'latest' });
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [passwordMsg, setPasswordMsg] = useState('');
   const [newArtistImageInput, setNewArtistImageInput] = useState('');
 
-  // 🔤 استدعاء خط Cairo
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap';
@@ -45,15 +69,58 @@ const App = () => {
     document.head.appendChild(link);
   }, []);
 
-  // 🛠️ دوال الإدارة
-  const handleAddImage = () => {
-    if (!newImage.title) return;
-    setImagesData([{ ...newImage, id: Date.now() }, ...imagesData]);
-    setNewImage({ title: '', url: '', category: 'latest' });
+  // 📥 جلب الصور تلقائياً من قاعدة البيانات السحابية
+  useEffect(() => {
+    if (!db) return; // إذا لم يتم ربط فايربيز، توقف
+
+    const q = query(collection(db, "gallery_images"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedImages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      if (fetchedImages.length > 0) {
+        setImagesData(fetchedImages);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 📤 رفع صورة جديدة إلى قاعدة البيانات
+  const handleAddImage = async () => {
+    if (!newImage.title || !newImage.url) return;
+    
+    if (db) {
+      try {
+        await addDoc(collection(db, "gallery_images"), {
+          title: newImage.title,
+          url: newImage.url,
+          category: newImage.category,
+          createdAt: Date.now()
+        });
+        setNewImage({ title: '', url: '', category: 'latest' });
+      } catch (e) {
+        console.error("خطأ في رفع الصورة: ", e);
+      }
+    } else {
+      // احتياطي مؤقت إذا لم يتم إعداد فايربيز
+      setImagesData([{ ...newImage, id: Date.now() }, ...imagesData]);
+      setNewImage({ title: '', url: '', category: 'latest' });
+    }
   };
 
-  const handleDeleteImage = (id) => {
-    setImagesData(imagesData.filter(img => img.id !== id));
+  // 🗑️ حذف صورة من قاعدة البيانات
+  const handleDeleteImage = async (id) => {
+    if (db && typeof id === 'string') {
+      try {
+        await deleteDoc(doc(db, "gallery_images", id));
+      } catch (e) {
+        console.error("خطأ في حذف الصورة: ", e);
+      }
+    } else {
+      setImagesData(imagesData.filter(img => img.id !== id));
+    }
   };
 
   const handleLogin = () => {
@@ -208,7 +275,6 @@ const App = () => {
             <div className="flex-1 px-4 md:px-10 pt-8 max-w-7xl mx-auto w-full">
               <h3 className="text-3xl md:text-4xl font-black text-black mb-8 text-center drop-shadow-md">المعرض الكامل</h3>
               
-              {/* شبكة الصور: تعرض 2 في الموبايل، 3 في التابلت، و5 في الشاشات الكبيرة */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 pb-8">
                 {imagesData.filter(img => img.category === 'gallery' || img.category === 'latest').map((item) => (
                   <div key={item.id} className="bg-[#E5CF9F] rounded-xl border-2 border-black aspect-square flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-1 md:p-2 cursor-pointer">
@@ -249,7 +315,7 @@ const App = () => {
                  )}
               </div>
 
-              {/* 🔒 ميزة مخفية للآدمن لتغيير الصورة */}
+              {/* 🔒 ميزة مخفية للآدمن لتغيير الصورة (تحفظ في المتصفح) */}
               {isAdminAuthenticated && (
                 <div className="w-full max-w-md bg-white/80 backdrop-blur-sm border-2 border-dashed border-red-500 rounded-xl p-3 shadow-sm relative mt-2">
                   <span className="text-[10px] font-black text-white bg-red-600 px-2 py-0.5 rounded-full absolute -top-3 right-3">خاص بالآدمن</span>
@@ -266,6 +332,7 @@ const App = () => {
                       onClick={() => {
                         if (newArtistImageInput) {
                           setArtistImage(newArtistImageInput);
+                          localStorage.setItem('artistImage', newArtistImageInput); // حفظ محلي دائم
                           setNewArtistImageInput('');
                         }
                       }}
@@ -298,7 +365,6 @@ const App = () => {
               </h3>
               
               <div className="w-full space-y-5 md:space-y-6">
-                {/* Facebook */}
                 <a 
                   href="https://www.facebook.com/kamal.yemen?locale=ar_AR" 
                   target="_blank" 
@@ -309,7 +375,6 @@ const App = () => {
                   <span className="font-black text-xl md:text-2xl">فيسبوك</span>
                 </a>
                 
-                {/* X (Twitter) */}
                 <a 
                   href="https://x.com/kamalsharf" 
                   target="_blank" 
@@ -320,7 +385,6 @@ const App = () => {
                   <span className="font-black text-xl md:text-2xl">منصة إكس (X)</span>
                 </a>
 
-                {/* Telegram */}
                 <a 
                   href="https://t.co/n9JEKjKQR6" 
                   target="_blank" 
@@ -389,6 +453,7 @@ const App = () => {
               <div className="bg-black text-[#E5CF9F] p-4 md:p-6 rounded-2xl flex items-center justify-between shadow-lg">
                 <h3 className="text-xl md:text-2xl font-black flex items-center gap-2">
                   <Settings className="w-6 h-6 md:w-8 md:h-8" /> لوحة التحكم
+                  {!db && <span className="text-xs bg-red-600 text-white px-2 py-1 rounded-full animate-pulse">السحابة غير متصلة</span>}
                 </h3>
                 <button 
                   onClick={() => { setIsAdminAuthenticated(false); setActiveTab('home'); }}
@@ -452,6 +517,7 @@ const App = () => {
                         onClick={() => {
                           if (newPasswordInput.trim().length >= 4) {
                             setAdminPassword(newPasswordInput.trim());
+                            localStorage.setItem('adminPassword', newPasswordInput.trim()); // حفظ دائم
                             setPasswordMsg('تم الحفظ بنجاح!');
                             setNewPasswordInput('');
                           } else {
