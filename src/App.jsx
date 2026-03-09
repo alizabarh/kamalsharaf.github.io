@@ -448,15 +448,15 @@ const App = () => {
               </h3>
               
               <div className="w-full space-y-5 md:space-y-6">
-                <a href="#" className="w-full bg-[#1877F2] text-white p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-center gap-4 shadow-lg hover:scale-105 active:scale-95 transition-all">
+                <a href="https://www.facebook.com/kamal.yemen?locale=ar_AR" target="_blank" rel="noopener noreferrer" className="w-full bg-[#1877F2] text-white p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-center gap-4 shadow-lg hover:scale-105 active:scale-95 transition-all">
                   <Facebook className="w-8 h-8 md:w-10 md:h-10 fill-current" />
                   <span className="font-black text-xl md:text-2xl">فيسبوك</span>
                 </a>
-                <a href="#" className="w-full bg-black text-white p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-center gap-4 shadow-lg hover:scale-105 active:scale-95 transition-all">
+                <a href="https://x.com/kamalsharf" target="_blank" rel="noopener noreferrer" className="w-full bg-black text-white p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-center gap-4 shadow-lg hover:scale-105 active:scale-95 transition-all">
                   <Twitter className="w-8 h-8 md:w-10 md:h-10 fill-current" />
                   <span className="font-black text-xl md:text-2xl">إكس (X)</span>
                 </a>
-                <a href="#" className="w-full bg-[#2AABEE] text-white p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-center gap-4 shadow-lg hover:scale-105 active:scale-95 transition-all">
+                <a href="https://t.me/cksharf" target="_blank" rel="noopener noreferrer" className="w-full bg-[#2AABEE] text-white p-5 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-center gap-4 shadow-lg hover:scale-105 active:scale-95 transition-all">
                   <Send className="w-8 h-8 md:w-10 md:h-10 fill-current" />
                   <span className="font-black text-xl md:text-2xl">تليجرام</span>
                 </a>
